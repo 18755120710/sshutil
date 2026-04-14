@@ -73,7 +73,7 @@ struct SessionDetailView: View {
                     .font(.headline)
                 Spacer()
                 Button(action: {
-                    // TODO: 阶段3实现
+                    selectAndUploadFile()
                 }) {
                     Label("选择文件并上传", systemImage: "doc.badge.arrow.up")
                 }
@@ -83,6 +83,29 @@ struct SessionDetailView: View {
             .background(Color(NSColor.controlBackgroundColor))
         }
         .navigationTitle(session.name)
+    }
+    
+    private func selectAndUploadFile() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        
+        if panel.runModal() == .OK, let url = panel.url {
+            let filename = url.lastPathComponent
+            let targetPath = "/tmp/\(filename)" // 默认传到 /tmp 目录供测试
+            
+            appendConsole("开始上传 \(filename) 到 \(targetPath)...")
+            
+            Task {
+                do {
+                    try await connectionManager.uploadFile(localURL: url, remotePath: targetPath)
+                    appendConsole("✅ 上传成功: \(targetPath)")
+                } catch {
+                    appendConsole("❌ 上传失败: \(error)")
+                }
+            }
+        }
     }
     
     private func toggleConnection() async {

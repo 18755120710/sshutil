@@ -38,6 +38,28 @@ class SSHConnectionManager {
         return ""
     }
     
+    func uploadFile(localURL: URL, remotePath: String) async throws {
+        guard let client = currentClient else {
+            throw SSHManagerError.notConnected
+        }
+        
+        // 开启 SFTP 会话
+        let sftp = try await client.openSFTP()
+        
+        let fileData = try Data(contentsOf: localURL)
+        var buffer = ByteBufferAllocator().buffer(capacity: fileData.count)
+        buffer.writeBytes(fileData)
+        
+        let file = try await sftp.openFile(
+            remotePath,
+            withAccess: .write,
+            flags: [.create, .truncate]
+        )
+        
+        try await file.write(buffer)
+        try await file.close()
+    }
+    
     func disconnect() async throws {
         try await currentClient?.close()
         self.currentClient = nil
